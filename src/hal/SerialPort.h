@@ -33,7 +33,6 @@ public:
 	struct Settings {
 		string path;
 		uint64_t speed;
-		Mode mode		   = Mode::Terminal;
 		Parity parity	   = Parity::None;
 		DataBits data_bits = DataBits::Eight;
 		StopBits stop_bits = StopBits::One;
@@ -43,13 +42,14 @@ public:
 private:
 	int fd;
 	termios2 tty;
-	Settings *settings = nullptr;
+	const Settings *settings = nullptr;
+	Mode mode;
 
 	void setup();
 	void applySettings();
 
 public:
-	SerialPort(Settings settings);
+	SerialPort(const Settings &settings, Mode mode = Mode::Binary);
 	~SerialPort();
 
 	void open();

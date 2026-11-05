@@ -9,7 +9,7 @@
 #include <format>
 #include <system_error>
 
-SerialPort::SerialPort(Settings settings) : fd(-1), settings(&settings) {}
+SerialPort::SerialPort(const Settings &settings, Mode mode) : fd(-1), settings(&settings), mode(mode) {}
 
 SerialPort::~SerialPort() {
 	close();
@@ -73,7 +73,7 @@ void SerialPort::setup() {
 	tty.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL);
 	tty.c_oflag &= ~(OPOST | ONLCR);
 
-	setMode(settings->mode);
+	setMode(mode);
 
 	applySettings();
 }
@@ -108,8 +108,8 @@ void SerialPort::setMode(Mode mode) {
 		return;
 	}
 
-	settings->mode = mode;
-	if (settings->mode == Mode::Binary) {
+	this->mode = mode;
+	if (mode == Mode::Binary) {
 		tty.c_cc[VMIN]  = 1;
 		tty.c_cc[VTIME] = 0;
 	} else {

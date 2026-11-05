@@ -33,7 +33,7 @@ string Logger::formatTimestamp() {
 	char buf[20];
 	strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &now_tm);
 	std::string timestamp = buf;
-	timestamp += "." + std::to_string(now_ms.count());
+	timestamp += std::format(".{:03d}", now_ms.count());
 
 	return timestamp;
 }

@@ -7,4 +7,3 @@
 using std::string;
 using std::vector;
 typedef uint8_t byte;
-
