@@ -4,8 +4,9 @@
 #include <stdint.h>
 
 #include "utils.h"
+#include "abc/Stream.h"
 
-class SerialPort {
+class SerialPort : public WriteableStream {
 public:
 	enum class Mode {
 		Terminal,

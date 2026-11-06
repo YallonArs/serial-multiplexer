@@ -1,4 +1,3 @@
-#include <stddef.h>
 #include "dataview.h"
 
 extern "C" {
@@ -17,8 +16,7 @@ struct CPluginApi {
 
 	PluginHandle (*create)();
 	void (*destroy)(PluginHandle handle);
-
-	int (*process_data)(PluginHandle handle, const DataView data);
+	int (*receive)(PluginHandle handle, const DataView data);
 };
 
 typedef const CPluginApi *(*GetPluginApiFunc)();

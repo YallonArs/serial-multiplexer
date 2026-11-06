@@ -1,14 +1,17 @@
+#pragma once
+
 #ifdef __cplusplus
 #include <exception>
 #include <string_view>
 
+#include "abc/Stream.h"
+#include "abc/Receiver.h"
 #include "dataview.h"
 #include "plugin_api.h"
 
-class IPlugin {
+class IPlugin : public Receiver {
 public:
-	virtual ~IPlugin()					= default;
-	virtual bool process(DataView data) = 0;
+	virtual ~IPlugin() = default;
 
 	template <typename PluginT>
 		requires std::derived_from<PluginT, IPlugin>
@@ -24,11 +27,12 @@ public:
 					return nullptr;
 				}
 			},
-			.destroy	  = [](PluginHandle h) noexcept { delete reinterpret_cast<IPlugin *>(h); },
-			.process_data = [](PluginHandle h, const DataView data) noexcept -> int {
+			.destroy = [](PluginHandle h) noexcept { delete reinterpret_cast<IPlugin *>(h); },
+			.receive = [](PluginHandle h, const DataView data) noexcept -> int {
 				try {
 					auto *plugin = reinterpret_cast<IPlugin *>(h);
-					return plugin->process(data) ? 0 : -1;
+					plugin->receive(data);
+					return 0;
 				} catch (...) {
 					return -2;
 				}

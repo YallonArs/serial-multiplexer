@@ -1,7 +1,7 @@
 #include <chrono>
 #include <format>
 #include <sstream>
-#include "logger.h"
+#include "Logger.h"
 
 std::ofstream Logger::logFile(Logger::LOG_FILE_PATH, std::ios::app);
 

@@ -6,9 +6,8 @@ public:
 	ExamplePlugin() = default;
 	~ExamplePlugin() override = default;
 
-	bool process(DataView data) override {
+	void receive(const DataView &data) const noexcept {
 		std::cout << "ExamplePlugin processing data of size: " << data.size << std::endl;
-		return true;
 	}
 };
 

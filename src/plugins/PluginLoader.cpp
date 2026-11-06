@@ -1,18 +1,12 @@
 #include "PluginLoader.h"
 
 #include <dlfcn.h>
-#include <logger/logger.h>
 
+#include "logger/Logger.h"
 #include "utils.h"
 
 const Logger PluginLoader::logger("PluginLoader");
-vector<CPluginApi> PluginLoader::plugins_loaded;
-
-using GetPluginFn = const CPluginApi *(*)(
-	uint32_t
-);
-
-void PluginLoader::load_plugin(const string path) {
+LoadedPlugin PluginLoader::load_plugin(const string path) {
 	void *library = dlopen(
 		path.c_str(),
 		RTLD_NOW | RTLD_LOCAL
@@ -24,7 +18,7 @@ void PluginLoader::load_plugin(const string path) {
 		throw std::runtime_error("Failed to load plugin: " + path);
 	}
 
-	auto get_plugin = reinterpret_cast<GetPluginFn>(
+	auto get_plugin = reinterpret_cast<GetPluginApiFunc>(
 		dlsym(library, "get_plugin_api")
 	);
 
@@ -34,18 +28,34 @@ void PluginLoader::load_plugin(const string path) {
 		throw std::runtime_error("Failed to get plugin \"" + path + "\" function: " + path);
 	}
 
-	const CPluginApi *plugin = get_plugin(PLUGIN_ABI_VERSION);
+	const CPluginApi *plugin = get_plugin();
 
 	if (plugin == nullptr || plugin->descriptor.abi_version != PLUGIN_ABI_VERSION) {
 		dlclose(library);
 		throw std::runtime_error("Incompatible plugin: " + path);
 	}
 
-	logger.info(std::format("Loaded plugin: {}", plugin->descriptor.name));
+	PluginHandle handle = nullptr;
+	if (plugin->create != nullptr) {
+		handle = plugin->create();
+	}
 
-	const byte* data = reinterpret_cast<const byte*>(plugin->descriptor.name);
-	PluginHandle handle = plugin->create();
-	plugin->process_data(handle, {data, 67});
-	
-	plugins_loaded.push_back(*plugin);
+	if (handle == nullptr) {
+		dlclose(library);
+		throw std::runtime_error("Failed to create plugin instance: " + path);
+	}
+
+	logger.info(std::format("Loaded plugin: {}", plugin->descriptor.name));
+	return LoadedPlugin{library, plugin, handle, PluginReceiverAdapter(plugin, handle)};
+}
+
+
+void PluginLoader::unload_plugin(const LoadedPlugin &plugin) {
+	if (plugin.api != nullptr && plugin.handle != nullptr && plugin.api->destroy != nullptr) {
+		plugin.api->destroy(plugin.handle);
+	}
+
+	if (plugin.library != nullptr) {
+		dlclose(plugin.library);
+	}
 }
