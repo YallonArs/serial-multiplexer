@@ -46,7 +46,7 @@ LoadedPlugin PluginLoader::load_plugin(const string path) {
 	}
 
 	logger.info(std::format("Loaded plugin: {}", plugin->descriptor.name));
-	return LoadedPlugin{library, plugin, handle, PluginReceiverAdapter(plugin, handle)};
+	return LoadedPlugin{library, plugin, handle};
 }
 
 

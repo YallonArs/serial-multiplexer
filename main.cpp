@@ -2,12 +2,21 @@
 #include "broker/Broker.h"
 #include "plugins/PluginLoader.h"
 
+// Adapts a ByteSinkCap (C ABI) to ISink<DataView> for use with Broker
+struct ByteSinkAdapter : IByteSink {
+	const ByteSinkCap *cap;
+	PluginHandle handle;
+	ByteSinkAdapter(const ByteSinkCap *c, PluginHandle h) : cap(c), handle(h) {}
+	void receive(const DataView &data) override { cap->receive(handle, data); }
+};
+
 int main() {
 	SerialPort serialPort({"/dev/ttyUSB0", 9600});
-	Broker broker;
+	Broker<DataView> broker;
 
-	LoadedPlugin dumper = PluginLoader::load_plugin("./plugins/Dumper.so");
-	broker.subscribe(serialPort, dumper.adapter);
+	LoadedPlugin dumper = PluginLoader::load_plugin("./plugins/FileDumper.so");
+	ByteSinkAdapter adapter{dumper.query<ByteSinkCap>(CAP_BYTE_SINK), dumper.handle};
+	broker.subscribe(&serialPort, adapter);
 
 	serialPort.open();
 
@@ -15,7 +24,7 @@ int main() {
 	size_t bytesRead = 0;
 	serialPort.read(buffer, sizeof(buffer), bytesRead);
 	if (bytesRead > 0) {
-		broker.broadcast(serialPort, {buffer, bytesRead});
+		broker.broadcast(&serialPort, {buffer, bytesRead});
 	}
 
 	PluginLoader::unload_plugin(dumper);
