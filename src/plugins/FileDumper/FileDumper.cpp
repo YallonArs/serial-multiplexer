@@ -1,15 +1,14 @@
 #include <iostream>
 #include "plugins/IPlugin.h"
-#include "dataview.h"
 
-class FileDumper : public IByteSink {
+class FileDumper : public ISink {
 public:
 	FileDumper() = default;
 	~FileDumper() override = default;
 
-	void receive(const DataView &data) override {
-		std::cout << "FileDumper processing data of size: " << data.size << std::endl;
+	void receive(const PluginEvent &event) override {
+		std::cout << "FileDumper processing data of size: " << event.payload.size << std::endl;
 	}
 };
 
-REGISTER_PLUGIN(FileDumper, "FileDumper");
+REGISTER_PLUGIN(FileDumper, "FileDumper")
