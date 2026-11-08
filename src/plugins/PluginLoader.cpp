@@ -28,35 +28,6 @@ void PluginLoader::validate_methods(const CPluginApi *api) {
 		logger.error(std::format("Plugin {} has no destroy method", api->descriptor.name));
 		throw std::runtime_error("Plugin " + string(api->descriptor.name) + " has no destroy method");
 	}
-
-	validate_capabilities(api);
-}
-
-void PluginLoader::validate_capabilities(const CPluginApi *api) {
-	if (api == nullptr) {
-		throw std::runtime_error("Plugin API is null");
-	}
-
-	if (api->capabilities == 0) {
-		logger.error(std::format("Plugin {} has no capabilities", api->descriptor.name));
-		throw std::runtime_error("Plugin " + string(api->descriptor.name) + " has no capabilities");
-	}
-
-	const std::map<PluginCapability, void*> capabilities_map = {
-		{PluginCapability::None, nullptr},
-		{PluginCapability::Configurable, reinterpret_cast<void*>(api->methods.configure)},
-		{PluginCapability::Sink, reinterpret_cast<void*>(api->methods.receive)},
-		{PluginCapability::Source, reinterpret_cast<void*>(api->methods.set_callback)}
-	};
-	
-	for (const auto &[capability, method] : capabilities_map) {
-		if (Flags(api->capabilities).check(static_cast<uint8_t>(capability))) {
-			if (method == nullptr) {
-				logger.error(std::format("Plugin {} has capability {} but does not implement the required method", api->descriptor.name, static_cast<uint8_t>(capability)));
-				throw std::runtime_error("Plugin " + string(api->descriptor.name) + " has capability " + std::to_string(static_cast<uint8_t>(capability)) + " but does not implement the required method");
-			}
-		}
-	}
 }
 
 vector<PluginWrapper> PluginLoader::load_plugins(const string &directory) {

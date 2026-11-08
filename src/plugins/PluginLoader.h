@@ -39,7 +39,6 @@ private:
 
 	static vector<LoadedPlugin> loaded_plugins;
 	static void validate_methods(const CPluginApi *api);
-	static void validate_capabilities(const CPluginApi *api);
 	static void unload_plugin(const LoadedPlugin &plugin);
 
 public:
