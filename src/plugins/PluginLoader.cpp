@@ -59,22 +59,25 @@ void PluginLoader::validate_capabilities(const CPluginApi *api) {
 	}
 }
 
-void PluginLoader::load_plugins(const string &directory) {
+vector<PluginWrapper> PluginLoader::load_plugins(const string &directory) {
 	logger.info(std::format("Loading plugins from directory: {}", directory));
+
+	vector<PluginWrapper> plugins;
 
 	for (const auto &entry : std::filesystem::directory_iterator(directory)) {
 		if (entry.is_regular_file() && entry.path().extension() == ".so") {
 			try {
-				LoadedPlugin plugin = load_plugin(entry.path());
-				loaded_plugins.push_back(plugin);
+				plugins.push_back(load_plugin(entry.path()));
 			} catch (const std::exception &e) {
 				continue;
 			}
 		}
 	}
+
+	return plugins;
 }
 
-LoadedPlugin PluginLoader::load_plugin(const string &path) {
+PluginWrapper PluginLoader::load_plugin(const string &path) {
 	void *library = dlopen(
 		path.c_str(),
 		RTLD_NOW | RTLD_LOCAL
@@ -96,48 +99,70 @@ LoadedPlugin PluginLoader::load_plugin(const string &path) {
 		throw std::runtime_error("Failed to get plugin \"" + path + "\" function: " + path);
 	}
 
-	const CPluginApi *plugin = get_plugin();
+	const CPluginApi *api = get_plugin();
 
-	if (plugin == nullptr || plugin->descriptor.abi_version != PLUGIN_ABI_VERSION) {
+	if (api == nullptr) {
+		dlclose(library);
+		throw std::runtime_error("Failed to get plugin API: " + path);
+	}
+
+	if (api->descriptor.abi_version != PLUGIN_ABI_VERSION) {
 		dlclose(library);
 		throw std::runtime_error("Incompatible plugin: " + path);
 	}
 
-	validate_methods(plugin);
+	validate_methods(api);
 
-	PluginHandle handle = nullptr;
-	handle = plugin->methods.create();
-
+	PluginHandle handle = api->methods.create();
+	
 	if (handle == nullptr) {
 		dlclose(library);
-		throw std::runtime_error("Failed to create plugin instance: " + path);
+		logger.error(std::format("Plugin {} failed to create instance", api->descriptor.name));
+		throw std::runtime_error("Plugin " + string(api->descriptor.name) + " failed to create instance");
 	}
 
-	LoadedPlugin loaded_plugin {library, plugin, handle};
+	PluginWrapper wrapper;
+	wrapper.descriptor = api->descriptor;
+	wrapper.capabilities = Flags(api->capabilities);
 
-	logger.info(std::format("Loaded plugin: {}", plugin->descriptor.name));
+	wrapper.configure = [api, handle](const string &key, const string &value) {
+		if (api->methods.configure == nullptr) {
+			throw std::runtime_error("Plugin does not implement configure method");
+		}
+		return api->methods.configure(handle, key.c_str(), value.c_str());
+	};
+
+	wrapper.receive = [api, handle](const PluginEvent &event) {
+		if (api->methods.receive == nullptr) {
+			throw std::runtime_error("Plugin does not implement receive method");
+		}
+		api->methods.receive(handle, event);
+	};
+
+	wrapper.destroy = [api, handle]() {
+		api->methods.destroy(handle);
+	};
+
+	LoadedPlugin loaded_plugin {library, wrapper, handle, [api, handle]() { api->methods.destroy(handle); }};
+
+	logger.info(std::format("Loaded plugin: {}", api->descriptor.name));
 
 	loaded_plugins.push_back(loaded_plugin);
-	return loaded_plugin;
+	return wrapper;
 }
 
 void PluginLoader::unload_plugin(const LoadedPlugin &plugin) {
-	if (plugin.api == nullptr) {
-		logger.warning("Plugin API is null, cannot unload plugin");
-		return;
-	}
-
 	if (plugin.handle == nullptr) {
-		logger.warning(std::format("Plugin {} handle is null, cannot unload plugin", plugin.api->descriptor.name));
+		logger.warning(std::format("Plugin {} handle is null, cannot unload plugin", plugin.wrapper.descriptor.name));
 		return;
 	}
 
-	if (plugin.api->methods.destroy == nullptr) {
-		logger.warning(std::format("Plugin {} destroy method is null, cannot unload plugin", plugin.api->descriptor.name));
+	if (plugin.wrapper.destroy == nullptr) {
+		logger.warning(std::format("Plugin {} destroy method is null, cannot unload plugin", plugin.wrapper.descriptor.name));
 		return;
 	}
 
-	plugin.api->methods.destroy(plugin.handle);
+	plugin.wrapper.destroy();
 
 	if (plugin.library != nullptr) {
 		dlclose(plugin.library);

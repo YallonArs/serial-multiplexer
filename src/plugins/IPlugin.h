@@ -1,3 +1,5 @@
+#pragma once
+
 #include <concepts>
 #include <functional>
 
@@ -18,7 +20,7 @@ public:
 
 class ISource {
 public:
-	using Callback = std::function<void(PluginEvent &event)>;
+	using Callback = std::function<void(const PluginEvent &event)>;
 
 	virtual ~ISource() = default;
 	void set_callback(Callback cb) {
@@ -26,7 +28,7 @@ public:
 	}
 
 protected:
-	void emit(PluginEvent &event) {
+	void emit(const PluginEvent &event) {
 		if (callback) callback(event);
 	}
 
@@ -49,19 +51,19 @@ static const CPluginApi *get_api_table(c_string name) noexcept {
 	Flags capabilities = 0;
 	Methods methods {};
 	if constexpr (std::derived_from<T, IConfigurable>) {
-		capabilities.set(static_cast<uint8_t>(PluginCapability::Configurable));
+		capabilities.set(PluginCapability::Configurable);
 		methods.configure = [](PluginHandle handle, c_string key, c_string value) -> decltype(auto) {
 			return reinterpret_cast<T *>(handle)->configure(key, value);
 		};
 	}
 	if constexpr (std::derived_from<T, ISink>) {
-		capabilities.set(static_cast<uint8_t>(PluginCapability::Sink));
+		capabilities.set(PluginCapability::Sink);
 		methods.receive = [](PluginHandle handle, const PluginEvent &data) -> decltype(auto) {
 			reinterpret_cast<T *>(handle)->receive(data);
 		};
 	}
 	if constexpr (std::derived_from<T, ISource>) {
-		capabilities.set(static_cast<uint8_t>(PluginCapability::Source));
+		capabilities.set(PluginCapability::Source);
 		methods.set_callback = [](PluginHandle handle, SourceCap::Callback cb) -> decltype(auto) {
 			reinterpret_cast<T *>(handle)->set_callback(cb);
 		};
