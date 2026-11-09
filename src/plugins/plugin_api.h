@@ -41,7 +41,7 @@ struct SourceCap {
 };
 
 struct Methods {
-	PluginHandle (*create)();
+	PluginHandle (*create)(c_string name);
 	void (*destroy)(PluginHandle handle);
 	
 	int (*configure)(PluginHandle handle, c_string key, c_string value);

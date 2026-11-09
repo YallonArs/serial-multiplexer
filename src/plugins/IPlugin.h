@@ -3,22 +3,41 @@
 #include <concepts>
 #include <functional>
 
+#include "logger/Logger.h"
 #include "plugin_api.h"
 #include "utils.h"
 
-class IConfigurable {
+class PluginBase {
+public:
+	PluginBase() = default;
+	PluginBase(const string &name) {
+		set_name(name);
+	}
+	virtual ~PluginBase() = default;
+
+	void set_name(const string &name) {
+		this->name = name;
+		logger.set_name("Plugin :: " + name);
+	}
+
+protected:
+	string name;
+	Logger logger;
+};
+
+class IConfigurable : public virtual PluginBase {
 public:
 	virtual ~IConfigurable()									  = default;
 	virtual int configure(const string &key, const string &value) = 0;
 };
 
-class ISink {
+class ISink : public virtual PluginBase {
 public:
 	virtual ~ISink()							   = default;
 	virtual void receive(const PluginEvent &event) = 0;
 };
 
-class ISource {
+class ISource : public virtual PluginBase {
 public:
 	using Callback = std::function<void(const PluginEvent &event)>;
 
@@ -69,7 +88,17 @@ static const CPluginApi *get_api_table(PluginBasicDescriptor descriptor) noexcep
 		};
 	}
 
-	methods.create	= []() -> PluginHandle { return reinterpret_cast<PluginHandle>(new T()); };
+	methods.create = [](c_string name) -> PluginHandle {
+		if constexpr (std::constructible_from<T, c_string>) {
+			return reinterpret_cast<PluginHandle>(new T(name));
+		} else if constexpr (std::constructible_from<T, const string &>) {
+			return reinterpret_cast<PluginHandle>(new T(string(name)));
+		} else {
+			T *t = new T();
+			t->set_name(name);
+			return reinterpret_cast<PluginHandle>(t);
+		}
+	};
 	methods.destroy = [](PluginHandle handle) { delete reinterpret_cast<T *>(handle); };
 
 	PluginDescriptor full_plugin_descriptor = {

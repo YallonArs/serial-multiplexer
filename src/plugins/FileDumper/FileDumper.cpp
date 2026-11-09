@@ -1,22 +1,21 @@
-#include <iostream>
 #include "plugins/IPlugin.h"
 
 class FileDumper : public ISink, public IConfigurable {
 public:
-	FileDumper() {
-		std::cout << "FileDumper plugin created." << std::endl;
+	FileDumper(const string &name) : PluginBase(name) {
+		logger.debug("FileDumper plugin created.");
 	};
 	~FileDumper() override {
-		std::cout << "FileDumper plugin destroyed." << std::endl;
+		logger.debug("FileDumper plugin destroyed.");
 	};
 
 	int configure(const string &key, const string &value) override {
-		std::cout << "FileDumper configured with key: " << key << ", value: " << value << std::endl;
+		logger.info("FileDumper configured with key: " + key + ", value: " + value);
 		return 0;
 	}
 
 	void receive(const PluginEvent &event) override {
-		std::cout << "FileDumper processing data of size: " << event.payload.size << std::endl;
+		logger.info("FileDumper received data of size: " + std::to_string(event.payload.size));
 	}
 };
 

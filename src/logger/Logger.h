@@ -15,22 +15,27 @@ public:
 		Error
 	};
 
+protected:
+	string name;
+
 private:
 	static constexpr const char* LOG_FILE_PATH = "journal.log";
 	static std::ofstream logFile;
-	string name;
 
-	string levelToString(const Level level) const;
+	string levelToString(const Level level) const noexcept;
 	static string formatTimestamp();
-	string formatMessage(const Level level, const std::string &message) const;
+	string formatMessage(const Level level, const string &message) const;
 
 public:
-	Logger(const string name);
+	Logger() = default;
+	Logger(const string &name);
 
-	void log(const Level level, const std::string &message) const;
+	void set_name(const string &name);
+
+	void log(const Level level, const string &message) const;
 	
-	void debug(const std::string &message) const;
-	void info(const std::string &message) const;
-	void warning(const std::string &message) const;
-	void error(const std::string &message) const;
+	void debug(const string &message) const;
+	void info(const string &message) const;
+	void warning(const string &message) const;
+	void error(const string &message) const;
 };

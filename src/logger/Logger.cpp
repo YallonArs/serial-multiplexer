@@ -5,9 +5,13 @@
 
 std::ofstream Logger::logFile(Logger::LOG_FILE_PATH, std::ios::app);
 
-Logger::Logger(const string name) : name(name) {}
+Logger::Logger(const string &name) : name(name) {}
 
-string Logger::levelToString(const Level level) const {
+void Logger::set_name(const string &name) {
+	this->name = name;
+}
+
+string Logger::levelToString(const Level level) const noexcept {
 	switch (level) {
 		case Level::Debug:
 			return "DEBUG";

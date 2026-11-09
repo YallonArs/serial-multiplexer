@@ -95,7 +95,7 @@ PluginWrapper PluginLoader::load_plugin(const string &path) {
 
 	validate_methods(api);
 
-	PluginHandle handle = api->methods.create();
+	PluginHandle handle = api->methods.create(api->descriptor.name);
 	
 	if (handle == nullptr) {
 		dlclose(library);
