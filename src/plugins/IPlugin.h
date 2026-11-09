@@ -47,7 +47,7 @@ enum class PluginCapability : uint8_t {
 };
 
 template <PluginC T>
-static const CPluginApi *get_api_table(c_string name) noexcept {
+static const CPluginApi *get_api_table(PluginBasicDescriptor descriptor) noexcept {
 	Flags capabilities = 0;
 	Methods methods {};
 	if constexpr (std::derived_from<T, IConfigurable>) {
@@ -72,15 +72,23 @@ static const CPluginApi *get_api_table(c_string name) noexcept {
 	methods.create	= []() -> PluginHandle { return reinterpret_cast<PluginHandle>(new T()); };
 	methods.destroy = [](PluginHandle handle) { delete reinterpret_cast<T *>(handle); };
 
+	PluginDescriptor full_plugin_descriptor = {
+		{.name		  = descriptor.name,
+		 .id		  = descriptor.id,
+		 .version	  = descriptor.version,
+		 .author	  = descriptor.author,
+		 .description = descriptor.description},
+		PLUGIN_ABI_VERSION,
+	};
+
 	const CPluginApi *api = new CPluginApi {
-		.descriptor	  = {.abi_version = PLUGIN_ABI_VERSION,
-						 .name		  = name,
-						 .id		  = typeid(T).name()},
+		.descriptor	  = full_plugin_descriptor,
 		.capabilities = capabilities,
-		.methods	  = methods};
+		.methods	  = methods
+	};
 
 	return api;
 }
 
-#define REGISTER_PLUGIN(T, name) \
-	extern "C" const CPluginApi *get_api_table() noexcept { return get_api_table<T>(name); }
+#define REGISTER_PLUGIN(T, descriptor) \
+	extern "C" const CPluginApi *get_api_table() noexcept { return get_api_table<T>(descriptor); }

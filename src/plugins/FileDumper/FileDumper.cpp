@@ -20,4 +20,10 @@ public:
 	}
 };
 
-REGISTER_PLUGIN(FileDumper, "FileDumper")
+REGISTER_PLUGIN(FileDumper, (PluginBasicDescriptor{
+	.name = "File Dumper",
+	.id = "dev.builtin.file_dumper",
+	.version = "1.0.0",
+	.author = "YallonArs",
+	.description = "A simple file dumper plugin."
+}));

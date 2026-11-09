@@ -1,6 +1,7 @@
 #pragma once
-#include <map>
 #include <functional>
+#include <map>
+
 #include "IPlugin.h"
 #include "logger/Logger.h"
 #include "plugin_api.h"
@@ -22,7 +23,6 @@ struct PluginWrapper {
 	}
 };
 
-
 struct LoadedPlugin {
 	void *library;
 	PluginWrapper wrapper;
@@ -37,7 +37,7 @@ private:
 
 	static const Logger logger;
 
-	static vector<LoadedPlugin> loaded_plugins;
+	static std::map<string, LoadedPlugin> loaded_plugins;
 	static void validate_methods(const CPluginApi *api);
 	static void unload_plugin(const LoadedPlugin &plugin);
 

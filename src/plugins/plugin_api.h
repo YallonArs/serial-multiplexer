@@ -13,10 +13,16 @@ struct PluginEvent {
 	DataView payload;
 };
 
-struct PluginDescriptor {
-	uint32_t abi_version;
+struct PluginBasicDescriptor {
 	c_string name;
 	c_string id;
+	c_string version;
+	c_string author;
+	c_string description;
+};
+
+struct PluginDescriptor : public PluginBasicDescriptor {
+	uint32_t abi_version;
 };
 
 typedef struct PluginHandle_t *PluginHandle;
