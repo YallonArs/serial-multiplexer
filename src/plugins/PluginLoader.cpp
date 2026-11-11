@@ -97,26 +97,10 @@ PluginWrapper PluginLoader::load_plugin(const string &path) {
 	}
 
 	PluginWrapper wrapper;
+	wrapper.handle = handle;
+	wrapper.methods = api->methods;
 	wrapper.descriptor = api->descriptor;
 	wrapper.capabilities = Flags(api->capabilities);
-
-	wrapper.configure = [api, handle](const string &key, const string &value) {
-		if (api->methods.configure == nullptr) {
-			throw std::runtime_error(std::format("Plugin {} does not implement configure method", api->descriptor.id));
-		}
-		return api->methods.configure(handle, key.c_str(), value.c_str());
-	};
-
-	wrapper.receive = [api, handle](const PluginEvent &event) {
-		if (api->methods.receive == nullptr) {
-			throw std::runtime_error(std::format("Plugin {} does not implement receive method", api->descriptor.id));
-		}
-		api->methods.receive(handle, event);
-	};
-
-	wrapper.destroy = [api, handle]() {
-		api->methods.destroy(handle);
-	};
 
 	LoadedPlugin loaded_plugin {library, wrapper, handle, [api, handle]() { api->methods.destroy(handle); }};
 
@@ -126,13 +110,13 @@ PluginWrapper PluginLoader::load_plugin(const string &path) {
 	return wrapper;
 }
 
-void PluginLoader::unload_plugin(const LoadedPlugin &plugin) {
+void PluginLoader::unload_plugin(LoadedPlugin &plugin) {
 	if (plugin.handle == nullptr) {
 		logger.warning(std::format("Plugin {} handle is null, cannot unload plugin", plugin.wrapper.descriptor.id));
 		return;
 	}
 
-	if (plugin.wrapper.destroy == nullptr) {
+	if (plugin.wrapper.methods.destroy == nullptr) {
 		logger.warning(std::format("Plugin {} destroy method is null, cannot unload plugin", plugin.wrapper.descriptor.id));
 		return;
 	}
@@ -145,7 +129,7 @@ void PluginLoader::unload_plugin(const LoadedPlugin &plugin) {
 }
 
 void PluginLoader::unload_all() {
-	for (const auto &[_, plugin] : loaded_plugins) {
+	for (auto &[_, plugin] : loaded_plugins) {
 		unload_plugin(plugin);
 	}
 	

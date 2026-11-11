@@ -6,11 +6,33 @@
 #include "logger/Logger.h"
 #include "plugin_api.h"
 
-struct PluginWrapper {
+struct PluginWrapper : public IConfigurable, public ISink, public ISource {
 	PluginDescriptor descriptor;
-	std::function<int(const string &key, const string &value)> configure;
-	std::function<void(const PluginEvent &event)> receive;
-	std::function<void()> destroy;
+	PluginHandle handle;
+	CPluginMethods methods;
+
+	int configure(const string &key, const string &value) override {
+		if (methods.configure) {
+			return methods.configure(handle, key.c_str(), value.c_str());
+		}
+
+		throw std::runtime_error(std::format("Plugin {} does not implement configure method", descriptor.id));
+	}
+
+	void receive(const PluginEvent &event) override {
+		if (!methods.receive) {
+			throw std::runtime_error(std::format("Plugin {} does not implement receive method", descriptor.id));
+		}
+		
+		methods.receive(handle, event);
+	}
+
+	void destroy() {
+		if (!methods.destroy) {
+			throw std::runtime_error(std::format("Plugin {} does not implement destroy method", descriptor.id));
+		}
+		methods.destroy(handle);
+	}
 
 	Flags capabilities;
 
@@ -39,7 +61,7 @@ private:
 
 	static std::map<string, LoadedPlugin> loaded_plugins;
 	static void validate_methods(const CPluginApi *api);
-	static void unload_plugin(const LoadedPlugin &plugin);
+	static void unload_plugin(LoadedPlugin &plugin);
 
 public:
 	static PluginWrapper load_plugin(const string &path);
