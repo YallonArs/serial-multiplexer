@@ -138,7 +138,7 @@ void SerialPort::write(const byte *data, const size_t length) {
 	}
 }
 
-void SerialPort::read(byte *buffer, const size_t length, size_t &bytesRead) {
+ssize_t SerialPort::read(byte *buffer, const size_t length) {
 	if (!isOpen()) {
 		throw std::runtime_error("Serial port is not open");
 	}
@@ -148,5 +148,5 @@ void SerialPort::read(byte *buffer, const size_t length, size_t &bytesRead) {
 		throw std::runtime_error(std::format("Error reading from serial port: {}", strerror(errno)));
 	}
 
-	bytesRead = static_cast<size_t>(result);
+	return result;
 }

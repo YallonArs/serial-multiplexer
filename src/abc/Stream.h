@@ -11,7 +11,7 @@ public:
 	Stream() = default;
 	virtual ~Stream() = default;
 
-	virtual void read(byte *buffer, const size_t length, size_t &bytesRead) = 0;
+	virtual ssize_t read(byte *buffer, const size_t length) = 0;
 };
 
 class WriteableStream : public Stream {

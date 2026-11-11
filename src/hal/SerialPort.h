@@ -60,5 +60,5 @@ public:
 	void setMode(Mode mode);
 
 	void write(const byte *data, const size_t length);
-	void read(byte *buffer, const size_t length, size_t &bytesRead);
+	ssize_t read(byte *buffer, const size_t length);
 };
