@@ -68,7 +68,7 @@ enum class PluginCapability : uint8_t {
 template <PluginC T>
 static const CPluginApi *get_api_table(PluginBasicDescriptor descriptor) noexcept {
 	Flags capabilities = 0;
-	Methods methods {};
+	CPluginMethods methods {};
 	if constexpr (std::derived_from<T, IConfigurable>) {
 		capabilities.set(PluginCapability::Configurable);
 		methods.configure = [](PluginHandle handle, c_string key, c_string value) -> decltype(auto) {

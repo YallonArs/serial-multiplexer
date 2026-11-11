@@ -25,6 +25,7 @@ target_include_directories(serial-multiplexer PRIVATE
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 	target_compile_options(serial-multiplexer PRIVATE -Wall -Wextra -Wpedantic)
+	target_link_options(serial-multiplexer PRIVATE -Wl,--export-dynamic)
 endif()
 
 file(GLOB PLUGIN_CMAKE_FILES CONFIGURE_DEPENDS

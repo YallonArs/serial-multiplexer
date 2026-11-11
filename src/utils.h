@@ -1,9 +1,11 @@
 #pragma once
 
 #include <cstdint>
+#include <initializer_list>
 #include <string>
 #include <type_traits>
 #include <vector>
+#include <assert.h>
 
 #include "dataview.h"
 
@@ -18,7 +20,7 @@ concept IntegralConverible = std::convertible_to<T, uint8_t> || std::is_integral
 class Flags {
 private:
 	uint32_t storage;
-	static uint32_t get_mask(const uint8_t index) { return 1u << index; }
+	static uint32_t get_mask(const uint8_t index) { assert(index < sizeof(storage) * 8); return 1u << index; }
 
 public:
 	Flags() = default;

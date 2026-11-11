@@ -40,7 +40,7 @@ struct SourceCap {
 	void (*set_callback)(PluginHandle handle, Callback cb);
 };
 
-struct Methods {
+struct CPluginMethods {
 	PluginHandle (*create)(c_string name);
 	void (*destroy)(PluginHandle handle);
 	
@@ -52,7 +52,7 @@ struct Methods {
 struct CPluginApi {
 	PluginDescriptor descriptor;
 	uint32_t capabilities;
-	Methods methods;
+	CPluginMethods methods;
 };
 
 }
