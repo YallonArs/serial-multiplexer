@@ -9,6 +9,8 @@
 #include <format>
 #include <system_error>
 
+const Logger SerialPort::logger("SerialPort");
+
 SerialPort::SerialPort(const Settings &settings, Mode mode) : fd(-1), settings(&settings), mode(mode) {}
 
 SerialPort::~SerialPort() {
@@ -80,7 +82,7 @@ void SerialPort::setup() {
 
 void SerialPort::applySettings() {
 	if (ioctl(fd, TCSETS2, &tty) < 0) {
-		throw std::runtime_error(std::format("Error applying port settings (TCSETS2): {}", strerror(errno)));
+		throwLoggedError(logger, std::format("Error applying port settings (TCSETS2, {}): {}", settings->path, strerror(errno)));
 	}
 }
 
@@ -88,12 +90,12 @@ void SerialPort::open() {
 	fd = ::open(settings->path.c_str(), O_RDWR);
 
 	if (fd < 0) {
-		throw std::runtime_error("cannot open serial port");
+		throwLoggedError(logger, std::format("Error opening serial port {}: {}", settings->path, strerror(errno)));
 	}
-
+	
 	struct termios2 tty;
 	if (ioctl(fd, TCGETS2, &tty) < 0) {
-		throw std::runtime_error(std::format("Error reading port settings (TCGETS2): {}", strerror(errno)));
+		throwLoggedError(logger, std::format("Error getting port settings (TCGETS2, {}): {}", settings->path, strerror(errno)));
 	}
 	this->tty = tty;
 	setup();
@@ -129,23 +131,23 @@ void SerialPort::close() {
 
 void SerialPort::write(const byte *data, const size_t length) {
 	if (!isOpen()) {
-		throw std::runtime_error("Serial port is not open");
+		throwLoggedError(logger, std::format("Serial port {} is not open", settings->path));
 	}
 
 	ssize_t bytes_written = ::write(fd, data, length);
 	if (bytes_written < 0) {
-		throw std::runtime_error(std::format("Error writing to serial port: {}", strerror(errno)));
+		throwLoggedError(logger, std::format("Error writing to serial port {}: {}", settings->path, strerror(errno)));
 	}
 }
 
 ssize_t SerialPort::read(byte *buffer, const size_t length) {
 	if (!isOpen()) {
-		throw std::runtime_error("Serial port is not open");
+		throwLoggedError(logger, std::format("Serial port {} is not open", settings->path));
 	}
 
 	ssize_t result = ::read(fd, buffer, length);
 	if (result < 0) {
-		throw std::runtime_error(std::format("Error reading from serial port: {}", strerror(errno)));
+		throwLoggedError(logger, std::format("Error reading from serial port {}: {}", settings->path, strerror(errno)));
 	}
 
 	return result;

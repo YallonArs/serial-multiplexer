@@ -68,3 +68,8 @@ void Logger::warning(const std::string &message) const {
 void Logger::error(const std::string &message) const {
 	log(Level::Error, message);
 }
+
+[[noreturn]] void throwLoggedError(const Logger& logger, const string &message) {
+    logger.error(message);
+    throw std::runtime_error(std::move(message));
+}

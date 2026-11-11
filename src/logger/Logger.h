@@ -39,3 +39,5 @@ public:
 	void warning(const string &message) const;
 	void error(const string &message) const;
 };
+
+[[noreturn]] void throwLoggedError(const Logger& logger, const string &message);

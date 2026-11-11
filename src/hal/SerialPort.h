@@ -5,6 +5,7 @@
 
 #include "utils.h"
 #include "abc/Stream.h"
+#include "logger/Logger.h"
 
 class SerialPort : public WriteableStream {
 public:
@@ -41,6 +42,7 @@ public:
 	};
 
 private:
+	static const Logger logger;
 	int fd;
 	termios2 tty;
 	const Settings *settings = nullptr;

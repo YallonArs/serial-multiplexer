@@ -16,17 +16,15 @@ std::map<string, LoadedPlugin> PluginLoader::loaded_plugins;
 
 void PluginLoader::validate_methods(const CPluginApi *api) {
 	if (api == nullptr) {
-		throw std::runtime_error("Plugin API is null");
+		throwLoggedError(logger, "Plugin API is null");
 	}
 
 	if (api->methods.create == nullptr) {
-		logger.error(std::format("Plugin {} has no create method", api->descriptor.name));
-		throw std::runtime_error("Plugin " + string(api->descriptor.name) + " has no create method");
+		throwLoggedError(logger, std::format("Plugin {} has no create method", api->descriptor.name));
 	}
 
 	if (api->methods.destroy == nullptr) {
-		logger.error(std::format("Plugin {} has no destroy method", api->descriptor.name));
-		throw std::runtime_error("Plugin " + string(api->descriptor.name) + " has no destroy method");
+		throwLoggedError(logger, std::format("Plugin {} has no destroy method", api->descriptor.name));
 	}
 }
 
@@ -56,8 +54,7 @@ PluginWrapper PluginLoader::load_plugin(const string &path) {
 	logger.debug(std::format("Loading plugin: {}", path));
 
 	if (!library) {
-		logger.error(std::format("Failed to load plugin {}: {}", path, dlerror()));
-		throw std::runtime_error(std::format("Failed to load plugin {}: {}", path, dlerror()));
+		throwLoggedError(logger, std::format("Failed to load plugin {}: {}", path, dlerror()));
 	}
 
 	auto get_plugin = reinterpret_cast<GetPluginApiTableFunc>(
@@ -65,22 +62,20 @@ PluginWrapper PluginLoader::load_plugin(const string &path) {
 	);
 
 	if (!get_plugin) {
-		logger.error(std::format("Failed to find API table for plugin \"{}\": {}", path, dlerror()));
 		dlclose(library);
-		throw std::runtime_error(std::format("Failed to find API table for plugin \"{}\": {}", path, dlerror()));
+		throwLoggedError(logger, std::format("Failed to find API table for plugin \"{}\": {}", path, dlerror()));
 	}
 
 	const CPluginApi *api = get_plugin();
 
 	if (api == nullptr) {
 		dlclose(library);
-		throw std::runtime_error("Failed to get plugin API: " + path);
+		throwLoggedError(logger, std::format("Failed to get API table for plugin \"{}\": {}", path, dlerror()));
 	}
 
 	if (api->descriptor.abi_version != PLUGIN_ABI_VERSION) {
-		logger.error(std::format("Incompatible plugin: {}. Required ABI version: {}, got: {}", path, PLUGIN_ABI_VERSION, api->descriptor.abi_version));
 		dlclose(library);
-		throw std::runtime_error(std::format("Incompatible plugin: {}. Required ABI version: {}, got: {}", path, PLUGIN_ABI_VERSION, api->descriptor.abi_version));
+		throwLoggedError(logger, std::format("Incompatible plugin: {}. Required ABI version: {}, got: {}", path, PLUGIN_ABI_VERSION, api->descriptor.abi_version));
 	}
 
 	if (api->capabilities == 0) {
@@ -88,9 +83,8 @@ PluginWrapper PluginLoader::load_plugin(const string &path) {
 	}
 
 	if (loaded_plugins.find(api->descriptor.id) != loaded_plugins.end()) {
-		logger.warning(std::format("Plugin {} ({} - {}) is already loaded ({})", api->descriptor.name, api->descriptor.id, api->descriptor.version, loaded_plugins.find(api->descriptor.id)->second.wrapper.descriptor.version));
 		dlclose(library);
-		throw std::runtime_error("Plugin " + string(api->descriptor.name) + " is already loaded");
+		throwLoggedError(logger, std::format("Plugin {} ({} - {}) is already loaded ({})", api->descriptor.name, api->descriptor.id, api->descriptor.version, loaded_plugins.find(api->descriptor.id)->second.wrapper.descriptor.version));
 	}
 
 	validate_methods(api);
@@ -99,8 +93,7 @@ PluginWrapper PluginLoader::load_plugin(const string &path) {
 	
 	if (handle == nullptr) {
 		dlclose(library);
-		logger.error(std::format("Plugin {} failed to create instance", api->descriptor.id));
-		throw std::runtime_error("Plugin " + string(api->descriptor.id) + " failed to create instance");
+		throwLoggedError(logger, std::format("Plugin {} ({} - {}) failed to create instance", api->descriptor.name, api->descriptor.id, api->descriptor.version));
 	}
 
 	PluginWrapper wrapper;
